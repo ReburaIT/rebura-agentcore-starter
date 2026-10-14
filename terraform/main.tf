@@ -3,7 +3,7 @@
 #   - an AgentCore Memory store          (the same thing scripts/create_memory.py creates)
 #   - an IAM policy with the permissions the demo needs, to attach to the user or role that runs it
 #
-# Use this OR scripts/create_memory.py, not both. If your sandbox role cannot create IAM policies,
+# Use this OR scripts/create_memory.py, not both. If your role cannot create IAM policies (common in workshop sandboxes),
 # comment out the IAM section at the bottom and use the memory store alone.
 
 terraform {

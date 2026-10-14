@@ -18,7 +18,7 @@ Work through the steps below in order. Each step says how to tell it worked.
 You need:
 
 - **Python 3.10 or newer** (`python3 --version`)
-- **An AWS account with Bedrock model access.** At the hackathon this is the sandbox account we give your team.
+- **An AWS account with Bedrock model access.** If you're using this in a workshop or hackathon, the organisers may give you a sandbox account, so follow their instructions for credentials, region and permissions. If you're using your own AWS account, **you pay for everything you use** (see [Cost](#cost)).
 - **AWS credentials** for that account: an access key, secret key and session token, or an SSO profile.
 - **Node.js 20 or newer**, only for step 8 (deploying with the AgentCore CLI).
 
@@ -47,7 +47,7 @@ You should see `Successfully installed ...` with no errors. Run `source .venv/bi
 
 Pick **one** of these:
 
-**A. Environment variables** (what the sandbox account gives you):
+**A. Environment variables** (what a workshop sandbox account usually gives you):
 ```bash
 export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
@@ -68,7 +68,7 @@ export AWS_PROFILE=<profile>
 cp .env.example .env
 ```
 
-Open `.env`. The defaults work for most people. Change `AGENTCORE_REGION` if your hosts tell you to use another region.
+Open `.env`. The defaults work for most people. Change `AGENTCORE_REGION` if your workshop organisers tell you to use another region, or to match the region you want to use in your own account.
 
 ### 5. Check everything works
 
@@ -116,7 +116,7 @@ This creates a memory store, waits for it to become `ACTIVE`, and adds `AGENTCOR
 1. Click **Store preferences**, then start a **New Session** and click **Recall preferences**. The agent remembers across sessions.
 2. Use `POST /api/seed-memory` to pre-load some example facts before a demo.
 
-Your sandbox role needs permission for `bedrock-agentcore-control:CreateMemory`. If that's denied, ask the hosts for a memory ID.
+Your role needs permission for `bedrock-agentcore-control:CreateMemory`. In a workshop sandbox, if that's denied, ask the organisers for a memory ID.
 
 **Prefer Terraform?** `terraform/` creates the same memory store plus an IAM policy with the permissions the demo needs (model invocation and this one memory store):
 
@@ -127,7 +127,7 @@ terraform apply          # review the plan, then type yes
 terraform output env_line  # add this line to ../.env
 ```
 
-Use this or the script, not both. Run `terraform destroy` to remove everything afterwards. If your sandbox role can't create IAM policies, remove the `aws_iam_policy` block from `terraform/main.tf` and keep the memory store.
+Use this or the script, not both. Run `terraform destroy` to remove everything afterwards. If your role can't create IAM policies (common in workshop sandboxes), remove the `aws_iam_policy` block from `terraform/main.tf` and keep the memory store.
 
 ### 8. Build your own agent
 
@@ -174,7 +174,7 @@ agentcore invoke --prompt "Hello"
 Then bring your agent over: copy your tools and system prompt from `starter/agent.py` into the generated project and run `agentcore deploy` again.
 
 - **The first `agentcore deploy` takes a few minutes**, because it bootstraps your account with CDK.
-- Your role needs permission to deploy (CloudFormation, IAM and AgentCore); the sandbox accounts are set up for this.
+- Your role needs permission to deploy (CloudFormation, IAM and AgentCore). Workshop sandbox accounts are usually set up for this; in your own account, check your permissions first.
 - If a step fails, the CLI's error message is the best guide; the [AgentCore CLI quickstart](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-get-started-cli.html) covers each command.
 
 ---
@@ -184,7 +184,7 @@ Then bring your agent over: copy your tools and system prompt from `starter/agen
 | Symptom | Likely cause and fix |
 |---|---|
 | `ValidationException` ... "on-demand throughput isn't supported" | You used a bare model ID. Use an inference profile ID with the `eu.` prefix (see the table below). |
-| `AccessDeniedException` when invoking a model | Bedrock model access isn't enabled for that model in your account or region. Ask the hosts. |
+| `AccessDeniedException` when invoking a model | Bedrock model access isn't enabled for that model in your account or region. In a workshop, ask the organisers; in your own account, enable it in the Bedrock console. |
 | `ExpiredTokenException` / `security token ... expired` | Your temporary credentials expired. Paste new ones in the UI's Credentials panel, or export them again and restart. |
 | `Could not connect to the endpoint URL` | `AGENTCORE_REGION` is wrong or the service isn't available there. Check `.env`. |
 | `Address already in use` on port 8000 | Something else is using it. Run `PORT=8010 python server.py`. |
@@ -244,7 +244,7 @@ Memory mode in the web UI uses the `agentcore_memory` tool in `server.py`, which
 
 ## Cost
 
-You pay for Bedrock model use (per token) and AgentCore usage (Memory, Runtime and so on). Both are billed in your sandbox account. See the [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) and [AgentCore pricing](https://aws.amazon.com/bedrock/agentcore/pricing/) pages.
+In a workshop that provides a sandbox account, the organisers normally cover the cost, but check with them. **In your own AWS account, you pay for everything this repo uses**: Bedrock model use (per token) and AgentCore usage (Memory, Runtime and so on). See the [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) and [AgentCore pricing](https://aws.amazon.com/bedrock/agentcore/pricing/) pages.
 
 ## Licence
 
