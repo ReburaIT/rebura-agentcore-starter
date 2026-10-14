@@ -1,0 +1,2 @@
+# Kept for backwards compatibility - use requirements.txt
+-r requirements.txt

@@ -1,0 +1,2403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentCore + Strands Demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f1117;
+    --surface:  #161b22;
+    --surface2: #1c2128;
+    --border:   #21262d;
+    --border2:  #30363d;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --orange:   #ff9900;
+    --orange-dim: #cc7a00;
+    --blue:     #58a6ff;
+    --green:    #3fb950;
+    --red:      #f85149;
+    --purple:   #a371f7;
+    --coral:    #f78166;
+    --amber:    #d29922;
+    --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    --font-ui:   -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────── */
+
+  #app {
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 12px;
+  }
+
+  #header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--orange);
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+  }
+
+  #logo span.hex { font-size: 20px; }
+
+  #header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  .status-pill.ready    { background: rgba(63,185,80,.12); border-color: rgba(63,185,80,.3); color: var(--green); }
+  .status-pill.updating { background: rgba(210,153,34,.12); border-color: rgba(210,153,34,.3); color: var(--amber); }
+  .status-pill.error    { background: rgba(248,81,73,.12); border-color: rgba(248,81,73,.3); color: var(--red); }
+  .status-pill.unknown  { background: rgba(139,148,158,.12); border-color: rgba(139,148,158,.3); color: var(--muted); }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  .ready .status-dot { animation: pulse-green 2s infinite; }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  #harness-arn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .btn-ghost:hover { border-color: var(--border2); background: var(--surface2); color: var(--text); }
+
+  /* ── Body ───────────────────────────────────────────────── */
+
+  #body {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
+
+  #sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 12px 0;
+    gap: 2px;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    padding: 8px 16px 4px;
+  }
+
+  .nav-btn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    text-align: left;
+    width: 100%;
+    border-left: 3px solid transparent;
+    transition: background .12s, border-color .12s;
+    position: relative;
+  }
+
+  .nav-btn:hover { background: rgba(255,255,255,.04); }
+
+  .nav-btn.active {
+    border-left-color: var(--orange);
+    background: rgba(255,153,0,.07);
+  }
+
+  .nav-icon { font-size: 18px; flex-shrink: 0; line-height: 1.2; }
+
+  .nav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+  .nav-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .nav-btn.active .nav-title { color: var(--orange); }
+
+  .nav-desc {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.3;
+    white-space: normal;
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 16px;
+  }
+
+  /* ── Config panel ───────────────────────────────────────── */
+
+  #config-panel {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  #config-panel.visible { display: flex; }
+
+  .config-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .config-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    line-height: 1.5;
+  }
+
+  .creds-textarea {
+    width: 100%;
+    min-height: 160px;
+    padding: 12px 14px;
+    background: #0d1117;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    resize: vertical;
+    transition: border-color .15s;
+  }
+
+  .creds-textarea:focus {
+    outline: none;
+    border-color: var(--orange);
+  }
+
+  .creds-textarea::placeholder { color: #3d444d; }
+
+  .creds-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-apply {
+    padding: 8px 20px;
+    background: var(--orange);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .12s;
+  }
+
+  .btn-apply:hover { background: #e68a00; }
+  .btn-apply:disabled { background: #554400; color: #888; cursor: default; }
+
+  .btn-clear-creds {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color .12s, color .12s;
+  }
+
+  .btn-clear-creds:hover { border-color: var(--red); color: var(--red); }
+
+  #creds-status {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .creds-status-ok    { color: var(--green); }
+  .creds-status-err   { color: var(--red); }
+  .creds-status-info  { color: var(--muted); }
+
+  .creds-current-box {
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    line-height: 1.8;
+    color: var(--muted);
+  }
+
+  .creds-current-box .label { color: var(--muted); }
+  .creds-current-box .value { color: var(--text); }
+
+  /* ── Main ───────────────────────────────────────────────── */
+
+  #main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* ── Diagram section ──────────────────────────────────────── */
+
+  #diagram-section {
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--surface);
+    border-bottom: 1px solid transparent;
+    transition: background .12s;
+  }
+
+  .section-header:hover { background: var(--surface2); }
+
+  .section-header.open { border-bottom-color: var(--border); }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--muted);
+  }
+
+  .section-toggle {
+    font-size: 11px;
+    color: var(--muted);
+    transition: transform .2s;
+  }
+
+  .section-toggle.open { transform: rotate(180deg); }
+
+  .section-body {
+    overflow: hidden;
+    transition: max-height .25s ease;
+  }
+
+  #diagram-body {
+    padding: 16px 20px;
+    background: var(--surface);
+    display: flex;
+    justify-content: center;
+  }
+
+  #diagram-body svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* ── Scenario panel ──────────────────────────────────────── */
+
+  #scenario-section {
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #scenario-body {
+    padding: 16px 20px;
+    background: var(--surface);
+  }
+
+  .scenario-header { margin-bottom: 10px; }
+
+  .scenario-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .scenario-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .scenario-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .feature-tag {
+    font-size: 10px;
+    background: rgba(88,166,255,.1);
+    border: 1px solid rgba(88,166,255,.2);
+    color: var(--blue);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .scenario-config-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+
+  .chip:hover { border-color: var(--orange); color: var(--orange); }
+
+  .chip.active {
+    background: rgba(255,153,0,.15);
+    border-color: var(--orange);
+    color: var(--orange);
+  }
+
+  .chip.example:hover { border-color: var(--blue); color: var(--blue); }
+  .chip.example.active { background: rgba(88,166,255,.1); border-color: var(--blue); color: var(--blue); }
+
+  .seed-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-seed {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text-muted);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .btn-seed:hover { border-color: var(--orange); color: var(--orange); }
+  .btn-seed:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .seed-status {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .seed-status.ok  { color: #3fb950; }
+  .seed-status.err { color: var(--red); }
+
+  .swap-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .swap-select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color .15s;
+    font-family: var(--font-ui);
+  }
+
+  .swap-select:focus { border-color: var(--orange); }
+
+  .btn-run {
+    background: var(--orange);
+    border: none;
+    color: #000;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    white-space: nowrap;
+  }
+
+  .btn-run:hover { background: #ffad33; }
+  .btn-run:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── Response area ───────────────────────────────────────── */
+
+  #response-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  #response-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    background: #0d1117;
+    min-height: 0;
+    scroll-behavior: smooth;
+  }
+
+  #response-body::-webkit-scrollbar { width: 6px; }
+  #response-body::-webkit-scrollbar-track { background: transparent; }
+  #response-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .message { margin-bottom: 16px; }
+
+  .message-prefix {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 3px;
+    display: block;
+  }
+
+  .message.user .message-prefix { color: var(--blue); }
+  .message.assistant .message-prefix { color: var(--green); }
+
+  .message-text {
+    color: var(--text);
+    word-break: break-word;
+    line-height: 1.6;
+  }
+
+  /* Plain text while streaming */
+  .message-text.streaming { white-space: pre-wrap; }
+
+  /* Markdown output once finalized */
+  .message-text p          { margin: 0.35em 0; }
+  .message-text p:first-child { margin-top: 0; }
+  .message-text p:last-child  { margin-bottom: 0; }
+  .message-text h1, .message-text h2, .message-text h3,
+  .message-text h4, .message-text h5, .message-text h6 {
+    font-weight: 700; margin: 0.9em 0 0.3em; color: var(--text); line-height: 1.3;
+  }
+  .message-text h1 { font-size: 1.25em; }
+  .message-text h2 { font-size: 1.12em; }
+  .message-text h3 { font-size: 1.02em; }
+  .message-text ul, .message-text ol { padding-left: 1.4em; margin: 0.35em 0; }
+  .message-text li { margin: 0.15em 0; }
+  .message-text code:not(pre > code) {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 3px;
+    padding: 0.1em 0.38em;
+    color: #e0a0a0;
+  }
+  .message-text pre {
+    background: #0a0e14;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 0.6em 0;
+    overflow-x: auto;
+  }
+  .message-text pre > code {
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    color: #c9d1d9;
+    background: none;
+    border: none;
+    padding: 0;
+    white-space: pre;
+  }
+  .message-text blockquote {
+    border-left: 3px solid var(--border2);
+    padding-left: 12px;
+    color: var(--muted);
+    margin: 0.5em 0;
+  }
+  .message-text table { border-collapse: collapse; margin: 0.6em 0; font-size: 0.9em; }
+  .message-text th, .message-text td {
+    border: 1px solid var(--border2);
+    padding: 5px 10px;
+    text-align: left;
+  }
+  .message-text th { background: var(--surface2); font-weight: 600; }
+  .message-text a   { color: var(--blue); text-decoration: underline; }
+  .message-text strong { font-weight: 700; }
+  .message-text em     { font-style: italic; }
+  .message-text hr  { border: none; border-top: 1px solid var(--border); margin: 0.7em 0; }
+
+  .message.user .message-text { color: #c9d1d9; white-space: pre-wrap; }
+
+  .tool-block {
+    margin: 8px 0;
+    border: 1px solid rgba(63,185,80,.2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .tool-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(63,185,80,.08);
+    border-bottom: 1px solid rgba(63,185,80,.15);
+  }
+
+  .tool-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.3px;
+  }
+
+  .tool-running {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--amber);
+  }
+
+  .tool-running-dot {
+    width: 7px; height: 7px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse-amber 1s infinite;
+  }
+
+  @keyframes pulse-amber {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.25; }
+  }
+
+  .tool-json {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #b3b8c3;
+    background: #0d1117;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .turn-separator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 12px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .turn-separator::before,
+  .turn-separator::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border2);
+  }
+
+  .turn-label {
+    white-space: nowrap;
+    padding: 0 4px;
+  }
+
+  .error-msg {
+    color: var(--red);
+    font-size: 12px;
+    padding: 8px 12px;
+    background: rgba(248,81,73,.08);
+    border: 1px solid rgba(248,81,73,.2);
+    border-radius: 6px;
+    margin: 4px 0;
+  }
+
+  .approval-pending {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(210,153,34,.08);
+    border: 1px solid rgba(210,153,34,.25);
+    border-radius: 6px;
+    margin: 8px 0;
+    color: var(--amber);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── Input row ───────────────────────────────────────────── */
+
+  #input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #prompt-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    min-height: 40px;
+    max-height: 84px;
+    transition: border-color .15s;
+    overflow-y: auto;
+  }
+
+  #prompt-input:focus { border-color: var(--orange); }
+  #prompt-input::placeholder { color: var(--muted); }
+
+  .btn-send {
+    background: var(--orange);
+    border: none;
+    color: #000;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, opacity .15s;
+    flex-shrink: 0;
+  }
+
+  .btn-send:hover { background: #ffad33; }
+  .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-stop {
+    display: none;
+    background: transparent;
+    border: 1.5px solid var(--red);
+    color: var(--red);
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+  }
+
+  .btn-stop:hover { background: rgba(248,81,73,.12); }
+
+  #input-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 16px 6px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  #session-display {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  #session-display span { color: var(--purple); }
+
+  .btn-new-session {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .btn-new-session:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── Approval modal ──────────────────────────────────────── */
+
+  #modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+
+  #modal-backdrop.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  #modal-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    width: 500px;
+    max-width: 95vw;
+    overflow: hidden;
+    transform: translateY(12px);
+    transition: transform .2s;
+    box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  }
+
+  #modal-backdrop.visible #modal-card { transform: translateY(0); }
+
+  #modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(210,153,34,.06);
+  }
+
+  #modal-header-icon { font-size: 20px; }
+
+  #modal-header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--amber);
+  }
+
+  #modal-body { padding: 20px; }
+
+  .modal-field {
+    margin-bottom: 14px;
+  }
+
+  .modal-field-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .modal-field-value {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .reversible-yes { color: var(--green); font-weight: 600; }
+  .reversible-no  { color: var(--red);   font-weight: 600; }
+
+  #modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-deny {
+    background: transparent;
+    border: 1px solid rgba(248,81,73,.5);
+    color: var(--red);
+    padding: 8px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .btn-deny:hover { background: rgba(248,81,73,.1); border-color: var(--red); }
+
+  .btn-approve {
+    background: var(--green);
+    border: none;
+    color: #0d1117;
+    padding: 8px 18px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .btn-approve:hover { background: #57d167; }
+
+  /* ── Scrollbars ───────────────────────────────────────────── */
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── Placeholder text ─────────────────────────────────────── */
+
+  .response-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 8px;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    user-select: none;
+  }
+
+  .response-placeholder .ph-icon { font-size: 32px; opacity: 0.4; }
+  .response-placeholder .ph-text { font-size: 13px; opacity: 0.6; }
+
+  /* ── Context drawer ────────────────────────────────────────── */
+
+  #context-drawer {
+    position: fixed;
+    top: 48px;
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    max-width: 92vw;
+    background: var(--surface);
+    border-left: 1px solid var(--border2);
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .22s cubic-bezier(.4,0,.2,1);
+    overflow: hidden;
+  }
+
+  #context-drawer.open { transform: translateX(0); }
+
+  #context-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 10px;
+  }
+
+  #context-drawer-header h2 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  #context-drawer-header h2 .ctx-label-mode {
+    font-weight: 400;
+    color: var(--orange);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: rgba(255,153,0,.1);
+    border: 1px solid rgba(255,153,0,.25);
+    border-radius: 4px;
+    padding: 1px 7px;
+  }
+
+  .btn-ctx-close {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color .12s, background .12s;
+  }
+
+  .btn-ctx-close:hover { color: var(--text); background: var(--surface2); }
+
+  #context-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  .ctx-section {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ctx-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .1s;
+  }
+
+  .ctx-section-header:hover { background: rgba(255,255,255,.03); }
+
+  .ctx-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .ctx-section-title .ctx-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .ctx-section-chevron {
+    font-size: 10px;
+    color: var(--muted);
+    transition: transform .15s;
+  }
+
+  .ctx-section.open .ctx-section-chevron { transform: rotate(90deg); }
+
+  .ctx-section-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .2s ease;
+  }
+
+  .ctx-section.open .ctx-section-body { max-height: 2000px; }
+
+  .ctx-code {
+    margin: 0;
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    line-height: 1.65;
+    color: #c9d1d9;
+    background: #0a0e14;
+    border-top: 1px solid var(--border);
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: auto;
+  }
+
+  .ctx-plain {
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* JSON syntax colours */
+  .j-key  { color: #79c0ff; }
+  .j-str  { color: #a5d6a7; }
+  .j-num  { color: #f2a65a; }
+  .j-bool { color: #ff7b72; }
+  .j-null { color: #8b949e; }
+
+  /* Context toggle button — highlighted when drawer is open */
+  .btn-ghost.ctx-active {
+    border-color: var(--orange);
+    color: var(--orange);
+    background: rgba(255,153,0,.08);
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Header ── -->
+  <header id="header">
+    <div id="header-left">
+      <div id="logo"><span class="hex">⬡</span> AgentCore + Strands</div>
+    </div>
+    <div id="header-right">
+      <div id="status-pill" class="status-pill unknown">
+        <span class="status-dot"></span>
+        <span id="status-text">Loading…</span>
+      </div>
+      <div id="harness-arn" style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">—</div>
+      <button class="btn-ghost" onclick="refreshStatus()">↺ Refresh</button>
+      <button class="btn-ghost" id="ctx-toggle-btn" onclick="toggleContextDrawer()" title="Show last invocation context">{ } Context</button>
+    </div>
+  </header>
+
+  <!-- ── Body ── -->
+  <div id="body">
+
+    <!-- ── Sidebar ── -->
+    <nav id="sidebar">
+      <div class="sidebar-label">Scenarios</div>
+
+      <button class="nav-btn active" data-mode="chat" onclick="selectMode('chat')">
+        <span class="nav-icon">💬</span>
+        <div class="nav-text">
+          <span class="nav-title">Chat</span>
+          <span class="nav-desc">Multi-turn conversation</span>
+        </div>
+      </button>
+
+      <button class="nav-btn" data-mode="analyst" onclick="selectMode('analyst')">
+        <span class="nav-icon">📊</span>
+        <div class="nav-text">
+          <span class="nav-title">Analyst</span>
+          <span class="nav-desc">Python REPL data analysis</span>
+        </div>
+      </button>
+
+      <button class="nav-btn" data-mode="researcher" onclick="selectMode('researcher')">
+        <span class="nav-icon">🔍</span>
+        <div class="nav-text">
+          <span class="nav-title">Researcher</span>
+          <span class="nav-desc">Live web research via HTTP</span>
+        </div>
+      </button>
+
+      <button class="nav-btn" data-mode="multi-agent" onclick="selectMode('multi-agent')">
+        <span class="nav-icon">🤝</span>
+        <div class="nav-text">
+          <span class="nav-title">Multi-Agent</span>
+          <span class="nav-desc">Supervisor + specialists</span>
+        </div>
+      </button>
+
+      <button class="nav-btn" data-mode="memory" onclick="selectMode('memory')">
+        <span class="nav-icon">🧠</span>
+        <div class="nav-text">
+          <span class="nav-title">Memory</span>
+          <span class="nav-desc">AgentCore persistent memory</span>
+        </div>
+      </button>
+
+      <div class="sidebar-divider"></div>
+
+      <button class="nav-btn" data-mode="config" onclick="selectMode('config')">
+        <span class="nav-icon">⚙</span>
+        <div class="nav-text">
+          <span class="nav-title">Credentials</span>
+          <span class="nav-desc" id="creds-nav-desc">Using environment</span>
+        </div>
+      </button>
+    </nav>
+
+    <!-- ── Main ── -->
+    <div id="main">
+
+      <!-- Diagram section -->
+      <div id="diagram-section">
+        <div class="section-header open" onclick="toggleSection('diagram')">
+          <span class="section-title">Architecture</span>
+          <span class="section-toggle open" id="diagram-toggle">▲</span>
+        </div>
+        <div class="section-body" id="diagram-body-wrap" style="max-height:180px">
+          <div id="diagram-body">
+            <svg width="680" height="148" viewBox="0 0 680 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arrow-blue"  markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0 0, 7 3.5, 0 7" fill="#58a6ff"/></marker>
+                <marker id="arrow-blue-rev" markerWidth="7" markerHeight="7" refX="2" refY="3.5" orient="auto"><polygon points="7 0, 0 3.5, 7 7" fill="#58a6ff"/></marker>
+                <marker id="arrow-purple" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><polygon points="0 0, 7 3.5, 0 7" fill="#a371f7"/></marker>
+              </defs>
+
+              <!-- Client box -->
+              <rect x="4" y="34" width="96" height="80" rx="7" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+              <text x="52" y="72" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="11" font-weight="600" fill="#3fb950">Browser</text>
+              <text x="52" y="87" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">/ server.py</text>
+              <text x="52" y="100" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">FastAPI</text>
+
+              <!-- Arrows: client ↔ Strands agent -->
+              <line x1="101" y1="64" x2="172" y2="64" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+              <line x1="172" y1="84" x2="101" y2="84" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow-blue-rev)"/>
+              <text x="136" y="57" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#58a6ff">invoke</text>
+              <text x="136" y="100" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#58a6ff">SSE stream</text>
+
+              <!-- Strands Agent outer box -->
+              <rect x="175" y="4" width="330" height="140" rx="8" fill="#0d1117" stroke="#ff9900" stroke-width="1.5"/>
+              <text x="340" y="18" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#ff9900" letter-spacing="0.5">Strands Agent</text>
+
+              <!-- BedrockModel box -->
+              <rect x="191" y="26" width="112" height="54" rx="6" fill="#1c2128" stroke="#58a6ff" stroke-width="1.5"/>
+              <text x="247" y="50" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#58a6ff">BedrockModel</text>
+              <text x="247" y="63" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">Nova Pro /</text>
+              <text x="247" y="73" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">Claude Sonnet</text>
+
+              <!-- Tools box -->
+              <rect x="319" y="26" width="120" height="54" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+              <text x="379" y="46" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#3fb950">Tools</text>
+              <text x="379" y="59" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">python_repl</text>
+              <text x="379" y="70" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">http_request</text>
+              <text x="379" y="73" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e"> </text>
+
+              <!-- Conversation history box -->
+              <rect x="191" y="92" width="112" height="44" rx="6" fill="#1c2128" stroke="#a371f7" stroke-width="1.5"/>
+              <text x="247" y="113" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#a371f7">History</text>
+              <text x="247" y="127" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">in-process</text>
+
+              <!-- AgentCore Memory box -->
+              <rect x="319" y="92" width="120" height="44" rx="6" fill="#1c2128" stroke="#d29922" stroke-width="1.5"/>
+              <text x="379" y="110" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#d29922">AgentCore</text>
+              <text x="379" y="123" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#d29922">Memory</text>
+
+              <!-- Bedrock (right side) -->
+              <rect x="524" y="24" width="148" height="100" rx="8" fill="#0d1117" stroke="#ff9900" stroke-width="1"/>
+              <text x="598" y="39" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" font-weight="700" fill="#ff9900">Amazon Bedrock</text>
+              <rect x="536" y="46" width="124" height="32" rx="5" fill="#1c2128" stroke="#58a6ff" stroke-width="1"/>
+              <text x="598" y="62" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#58a6ff">Inference</text>
+              <text x="598" y="74" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#58a6ff">Nova / Claude</text>
+              <rect x="536" y="86" width="124" height="30" rx="5" fill="#1c2128" stroke="#d29922" stroke-width="1"/>
+              <text x="598" y="104" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#d29922">Memory API</text>
+
+              <!-- Arrows: Strands → Bedrock -->
+              <line x1="506" y1="62" x2="523" y2="62" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+              <line x1="506" y1="100" x2="523" y2="100" stroke="#d29922" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-purple)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scenario panel -->
+      <div id="scenario-section">
+        <div class="section-header open" onclick="toggleSection('scenario')">
+          <span class="section-title" id="scenario-section-title">Scenario</span>
+          <span class="section-toggle open" id="scenario-toggle">▲</span>
+        </div>
+        <div class="section-body" id="scenario-body-wrap" style="max-height:200px">
+          <div id="scenario-body">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Response area -->
+      <div id="response-section">
+        <div id="response-body">
+          <div class="response-placeholder" id="response-placeholder">
+            <span class="ph-icon">💬</span>
+            <span class="ph-text">Select a scenario and send a message to begin</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input meta row -->
+      <div id="input-meta">
+        <div id="session-display">Session: <span id="session-id-display">—</span></div>
+        <button class="btn-new-session" onclick="newSession()">+ New Session</button>
+      </div>
+
+      <!-- Input row -->
+      <div id="input-row">
+        <textarea
+          id="prompt-input"
+          rows="1"
+          placeholder="Send a message…"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="btn-stop" id="stop-btn" onclick="stopStream()">■ Stop</button>
+        <button class="btn-send" id="send-btn" onclick="sendMessage()">Send ▶</button>
+      </div>
+
+      <!-- ── Config panel (shown instead of diagram+scenario+response+input when mode=config) ── -->
+      <div id="config-panel">
+        <div id="file-origin-warning" style="display:none; padding:10px 14px; background:rgba(248,81,73,.1); border:1px solid var(--red); border-radius:6px; font-size:12px; color:var(--red); line-height:1.5;">
+          ⚠ This page is open as a local file — fetch calls will fail.<br>
+          Start the server (<code style="color:inherit">python server.py</code>) and open <strong>http://localhost:8000</strong> in your browser.
+        </div>
+        <div>
+          <div class="config-section-title">Current credentials</div>
+          <div class="creds-current-box" id="creds-current-box">
+            <span class="label">Source  </span><span class="value" id="creds-source">—</span><br>
+            <span class="label">Profile </span><span class="value" id="creds-profile">—</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="config-section-title">Paste temporary credentials</div>
+          <div class="config-hint">
+            Copy the block from AWS access portal (or <code>~/.aws/credentials</code>) and paste it here.
+            Credentials are held in server memory only — never written to disk.
+          </div>
+          <textarea
+            id="creds-textarea"
+            class="creds-textarea"
+            spellcheck="false"
+            placeholder="[123456789012_YourRoleName]
+aws_access_key_id=ASIA…
+aws_secret_access_key=…
+aws_session_token=…"
+          ></textarea>
+        </div>
+
+        <div class="creds-actions">
+          <button class="btn-apply" id="creds-apply-btn" onclick="applyCredentials()">Apply credentials</button>
+          <button class="btn-clear-creds" onclick="clearCredsTextarea()">Clear</button>
+          <span id="creds-status" class="creds-status-info"></span>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /body -->
+</div><!-- /app -->
+
+<!-- ── Context drawer ── -->
+<div id="context-drawer">
+  <div id="context-drawer-header">
+    <h2>
+      Invocation Context
+      <span class="ctx-label-mode" id="ctx-mode-badge">—</span>
+    </h2>
+    <button class="btn-ctx-close" onclick="toggleContextDrawer()">✕</button>
+  </div>
+  <div id="context-drawer-body">
+    <div class="ctx-plain" id="ctx-empty-msg">Send a message first to see invocation details.</div>
+  </div>
+</div>
+
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+const state = {
+  mode: 'chat',
+  sessions: {},
+  streaming: false,
+  analystDataset: 0,
+  multiAgentScenario: 0,
+  memoryScenario: 0,
+  meta: null,
+  availableModels: [],
+  selectedModel: null,   // applies to all modes
+};
+
+// ── Scenario metadata ──────────────────────────────────────────────────────────
+const SCENARIOS = {
+  chat: {
+    title: 'Chat — Multi-turn conversation',
+    desc: 'Strands Agent maintains full conversation history in-process. Each message builds on prior context — no external store needed. Sessions persist until you click + New Session.',
+    features: ['Multi-turn history', 'Strands Agent', 'BedrockModel (Nova / Claude)'],
+    inputPlaceholder: 'Ask anything…',
+  },
+  analyst: {
+    title: 'Analyst — Python REPL data analysis',
+    desc: 'Strands Agent with the python_repl tool. The agent writes and executes real Python code in a local Python process on your machine — no fabricated numbers. Three bundled datasets available as one-click prompts.',
+    features: ['python_repl tool', 'Real code execution', 'Session persists for follow-ups'],
+    inputPlaceholder: 'Ask a follow-up question about the data…',
+  },
+  researcher: {
+    title: 'Researcher — Live web research via HTTP',
+    desc: 'Strands Agent with the http_request tool. The agent makes live GET/POST requests to real URLs, extracts facts, and cites its sources. Never relies on training-data memory for things that can change.',
+    features: ['http_request tool', 'Live web access', 'Multi-source citation'],
+    inputPlaceholder: 'Ask about current events, pricing, or live data…',
+  },
+  'multi-agent': {
+    title: 'Multi-Agent — Supervisor + specialists',
+    desc: 'A supervisor Strands Agent delegates to two specialist sub-agents defined as @tool functions: research_specialist (http_request) and data_analyst (python_repl). Shows task decomposition and cross-agent collaboration.',
+    features: ['Supervisor pattern', 'research_specialist sub-agent', 'data_analyst sub-agent'],
+    inputPlaceholder: 'Describe a task requiring research and analysis…',
+  },
+  memory: {
+    title: 'Memory — Persistent AgentCore Memory',
+    desc: 'Strands Agent with an AgentCore Memory tool (agentcore_memory). Facts it stores persist in Amazon Bedrock AgentCore Memory and are retrievable across sessions and users.',
+    features: ['AgentCoreMemoryToolProvider', 'Cross-session persistence', 'AgentCore Memory API'],
+    inputPlaceholder: 'Ask me to remember something, or ask what I know…',
+  },
+};
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+function shortId(id) {
+  return id ? id.slice(0, 8) + '…' : '—';
+}
+
+function getSession(mode) {
+  if (!state.sessions[mode]) {
+    state.sessions[mode] = uuid();
+    updateSessionDisplay();
+  }
+  return state.sessions[mode];
+}
+
+function newSession(modeOverride) {
+  const mode = modeOverride || state.mode;
+  state.sessions[mode] = uuid();
+  updateSessionDisplay();
+  if (mode === state.mode) {
+    clearResponse();
+  }
+}
+
+function updateSessionDisplay() {
+  const el = document.getElementById('session-id-display');
+  const sid = state.sessions[state.mode];
+  el.textContent = sid ? shortId(sid) : '—';
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────────
+async function refreshStatus() {
+  const pill = document.getElementById('status-pill');
+  const text = document.getElementById('status-text');
+  const arn  = document.getElementById('harness-arn');
+
+  text.textContent = 'Checking…';
+  pill.className = 'status-pill unknown';
+
+  try {
+    const res  = await fetch('/api/status');
+    const data = await res.json();
+    const s = (data.status || 'UNKNOWN').toUpperCase();
+
+    if (s === 'READY') {
+      pill.className = 'status-pill ready';
+    } else if (s === 'UPDATING' || s === 'CREATING') {
+      pill.className = 'status-pill updating';
+    } else if (s === 'ERROR' || s === 'FAILED') {
+      pill.className = 'status-pill error';
+    } else {
+      pill.className = 'status-pill unknown';
+    }
+
+    text.textContent = s;
+    const memLabel = data.memory_configured ? `memory ✓` : `no memory`;
+    arn.textContent  = `${data.region || ''}  ·  ${data.default_model || ''}  ·  ${memLabel}`;
+    arn.title = data.memory_id || '';
+  } catch (e) {
+    pill.className   = 'status-pill error';
+    text.textContent = 'ERROR';
+    arn.textContent  = e.message;
+  }
+}
+
+// ── Meta ───────────────────────────────────────────────────────────────────────
+async function loadMeta() {
+  try {
+    const res  = await fetch('/api/meta');
+    state.meta = await res.json();
+    renderScenarioPanel(state.mode);
+  } catch (e) {
+    console.warn('Failed to load meta:', e);
+  }
+}
+
+async function loadModels() {
+  try {
+    const res  = await fetch('/api/models');
+    if (!res.ok) return;
+    const data = await res.json();
+    state.availableModels = data.models || [];
+    if (!state.selectedModel) {
+      state.selectedModel = data.default || null;
+    }
+    renderScenarioPanel(state.mode);
+  } catch (e) {
+    console.warn('Failed to load models:', e);
+  }
+}
+
+// ── Section collapse ───────────────────────────────────────────────────────────
+function toggleSection(name) {
+  const wrap   = document.getElementById(name + '-body-wrap');
+  const toggle = document.getElementById(name + '-toggle');
+  const header = toggle.closest('.section-header');
+
+  if (wrap.style.maxHeight && wrap.style.maxHeight !== '0px') {
+    wrap.style.maxHeight = '0px';
+    toggle.classList.remove('open');
+    header.classList.remove('open');
+  } else {
+    wrap.style.maxHeight = wrap.scrollHeight + 'px';
+    toggle.classList.add('open');
+    header.classList.add('open');
+  }
+}
+
+// ── Mode selection ─────────────────────────────────────────────────────────────
+function selectMode(mode) {
+  state.mode = mode;
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+
+  const isConfig = mode === 'config';
+
+  // Toggle normal panels vs config panel
+  ['diagram-section', 'scenario-section', 'response-section', 'input-row'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isConfig ? 'none' : '';
+  });
+  const cp = document.getElementById('config-panel');
+  if (cp) cp.classList.toggle('visible', isConfig);
+
+  if (isConfig) {
+    loadCredsStatus();
+    return;
+  }
+
+  clearResponse();
+  renderScenarioPanel(mode);
+  updateSessionDisplay();
+
+  const inp = document.getElementById('prompt-input');
+  inp.placeholder = SCENARIOS[mode]?.inputPlaceholder || 'Send a message…';
+}
+
+// ── Scenario panel rendering ───────────────────────────────────────────────────
+function renderScenarioPanel(mode) {
+  const sc   = SCENARIOS[mode] || {};
+  const meta = state.meta || {};
+  const body = document.getElementById('scenario-body');
+
+  const features = (sc.features || []).map(f =>
+    `<span class="feature-tag">${f}</span>`
+  ).join('');
+
+  let config = '';
+
+  // ── Model selector (shown in every mode) ──
+  const models = state.availableModels;
+  const cur    = state.selectedModel;
+  let modelHtml = '';
+  if (models.length) {
+    const opts = models.map(m =>
+      `<option value="${m.id}" ${m.id === cur ? 'selected' : ''}>${m.name}</option>`
+    ).join('');
+    modelHtml = `
+      <div class="scenario-config-label" style="margin-top:10px">Model</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select class="swap-select" id="model-select"
+                onchange="state.selectedModel=this.value">${opts}</select>
+      </div>`;
+  }
+
+  if (mode === 'analyst') {
+    const datasets = meta.datasets || [
+      {index:0,name:'SaaS Revenue 2025'},
+      {index:1,name:'Website Traffic Funnel'},
+      {index:2,name:'Server Latency Log'},
+    ];
+    const chips = datasets.map(d =>
+      `<span class="chip${state.analystDataset === d.index ? ' active' : ''}"
+        onclick="selectDataset(${d.index})">${d.name}</span>`
+    ).join('');
+    config = `
+      <div class="scenario-config-label">Select dataset — click to auto-send</div>
+      <div class="chips">${chips}</div>
+      ${modelHtml}`;
+
+  } else if (mode === 'chat') {
+    const examples = meta.chat_examples || [];
+    if (examples.length) {
+      const chips = examples.map(e =>
+        `<span class="chip example" onclick="prefillPrompt('${e.replace(/'/g,"\\'")}')">${e.length > 60 ? e.slice(0,58)+'…' : e}</span>`
+      ).join('');
+      config = `
+        <div class="scenario-config-label">Example prompts — click to prefill</div>
+        <div class="chips">${chips}</div>
+        ${modelHtml}`;
+    } else {
+      config = modelHtml;
+    }
+
+  } else if (mode === 'researcher') {
+    const examples = meta.researcher_examples || [];
+    let exampleHtml = '';
+    if (examples.length) {
+      const chips = examples.map(e =>
+        `<span class="chip example" onclick="prefillPrompt('${e.replace(/'/g,"\\'")}')">${e.length > 70 ? e.slice(0,68)+'…' : e}</span>`
+      ).join('');
+      exampleHtml = `
+        <div class="scenario-config-label">Example prompts — click to prefill</div>
+        <div class="chips">${chips}</div>`;
+    }
+    config = exampleHtml + modelHtml;
+
+  } else if (mode === 'multi-agent') {
+    const scenarios = meta.multiagent_scenarios || [
+      {index:0,name:'Research + Analyse'},
+      {index:1,name:'News + Sentiment'},
+      {index:2,name:'Compare + Calculate'},
+    ];
+    const chips = scenarios.map(s =>
+      `<span class="chip${state.multiAgentScenario === s.index ? ' active' : ''}"
+        onclick="selectMultiAgentScenario(${s.index})">${s.name}</span>`
+    ).join('');
+    config = `
+      <div class="scenario-config-label">Select scenario — click to auto-send</div>
+      <div class="chips">${chips}</div>
+      ${modelHtml}`;
+
+  } else if (mode === 'memory') {
+    const scenarios = meta.memory_scenarios || [
+      {index:0,name:'Store preferences'},
+      {index:1,name:'Recall preferences'},
+      {index:2,name:'Store workshop context'},
+      {index:3,name:'Recall all'},
+    ];
+    const chips = scenarios.map(s =>
+      `<span class="chip${state.memoryScenario === s.index ? ' active' : ''}"
+        onclick="selectMemoryScenario(${s.index})">${s.name}</span>`
+    ).join('');
+    config = `
+      <div class="scenario-config-label">Select scenario — click to auto-send</div>
+      <div class="chips">${chips}</div>
+      <div class="seed-row">
+        <button class="btn-seed" id="seed-btn" onclick="seedMemory()">Seed memory</button>
+        <span class="seed-status" id="seed-status">Pre-populate with demo facts before recalling</span>
+      </div>
+      ${modelHtml}`;
+
+  } else {
+    config = modelHtml;
+  }
+
+  body.innerHTML = `
+    <div class="scenario-header">
+      <div class="scenario-title">${sc.title || mode}</div>
+      <div class="scenario-desc">${sc.desc || ''}</div>
+      <div class="scenario-features">${features}</div>
+    </div>
+    ${config ? `<div class="scenario-config">${config}</div>` : ''}
+  `;
+
+  // Expand the scenario section if it was collapsed
+  const wrap = document.getElementById('scenario-body-wrap');
+  if (!wrap.style.maxHeight || wrap.style.maxHeight === '0px') {
+    wrap.style.maxHeight = '300px';
+  } else {
+    wrap.style.maxHeight = wrap.scrollHeight + 200 + 'px';
+  }
+}
+
+function prefillPrompt(text) {
+  const inp = document.getElementById('prompt-input');
+  inp.value = text;
+  autoResize(inp);
+  inp.focus();
+}
+
+function selectDataset(idx) {
+  state.analystDataset = idx;
+  document.querySelectorAll('#scenario-body .chip').forEach((c, i) => {
+    c.classList.toggle('active', i === idx);
+  });
+  sendAnalyst(idx);
+}
+
+
+// ── Response area ──────────────────────────────────────────────────────────────
+function clearResponse() {
+  const body = document.getElementById('response-body');
+  body.innerHTML = `<div class="response-placeholder" id="response-placeholder">
+    <span class="ph-icon">${SCENARIOS[state.mode] ? {chat:'💬',analyst:'📊',researcher:'🔍','multi-agent':'🤝',memory:'🧠'}[state.mode] || '💬' : '💬'}</span>
+    <span class="ph-text">Select a scenario and send a message to begin</span>
+  </div>`;
+}
+
+function removePlaceholder() {
+  const ph = document.getElementById('response-placeholder');
+  if (ph) ph.remove();
+}
+
+function appendUserMessage(text) {
+  removePlaceholder();
+  const body = document.getElementById('response-body');
+  const div  = document.createElement('div');
+  div.className = 'message user';
+  div.innerHTML = `<span class="message-prefix">You ›</span><div class="message-text">${escHtml(text)}</div>`;
+  body.appendChild(div);
+  scrollResponse();
+}
+
+function appendTurnSeparator(turn, modelLabel) {
+  removePlaceholder();
+  const body = document.getElementById('response-body');
+  const div  = document.createElement('div');
+  div.className = 'turn-separator';
+  div.innerHTML = `<span class="turn-label">── Turn ${turn} · ${modelLabel} ──</span>`;
+  body.appendChild(div);
+  scrollResponse();
+}
+
+let _currentAssistantDiv = null;
+let _currentTextSpan     = null;
+let _currentToolBlock    = null;
+let _currentRawText      = '';
+
+// Configure marked once (runs after the CDN script loads)
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof marked !== 'undefined') {
+    marked.setOptions({ gfm: true, breaks: true });
+  }
+});
+
+function finalizeCurrentSpan() {
+  if (!_currentTextSpan || !_currentRawText) return;
+  try {
+    _currentTextSpan.classList.remove('streaming');
+    _currentTextSpan.innerHTML = marked.parse(_currentRawText);
+  } catch (_) {
+    // leave as-is if marked fails for any reason
+  }
+  _currentRawText = '';
+}
+
+function startAssistantMessage() {
+  finalizeCurrentSpan();
+  removePlaceholder();
+  const body = document.getElementById('response-body');
+  _currentAssistantDiv = document.createElement('div');
+  _currentAssistantDiv.className = 'message assistant';
+  _currentAssistantDiv.innerHTML = `<span class="message-prefix">Assistant ›</span>`;
+  _currentTextSpan = document.createElement('div');
+  _currentTextSpan.className = 'message-text streaming';
+  _currentRawText = '';
+  _currentAssistantDiv.appendChild(_currentTextSpan);
+  _currentToolBlock = null;
+  body.appendChild(_currentAssistantDiv);
+  scrollResponse();
+}
+
+function appendToken(text) {
+  if (!_currentAssistantDiv) startAssistantMessage();
+  if (_currentToolBlock) {
+    const ri = _currentToolBlock.querySelector('.tool-running');
+    if (ri) ri.remove();
+    startAssistantMessage();
+  }
+  _currentRawText += text;
+  _currentTextSpan.textContent += text;
+  scrollResponse();
+}
+
+function appendToolStart(name, toolUseId) {
+  if (!_currentAssistantDiv) startAssistantMessage();
+
+  _currentToolBlock = document.createElement('div');
+  _currentToolBlock.className = 'tool-block';
+  _currentToolBlock.dataset.toolUseId = toolUseId;
+
+  _currentToolBlock.innerHTML = `
+    <div class="tool-header">
+      <span class="tool-badge">[→ ${escHtml(name)}]</span>
+      <span class="tool-running"><span class="tool-running-dot"></span> Running…</span>
+    </div>
+    <div class="tool-json" id="tj-${toolUseId}"></div>
+  `;
+
+  _currentAssistantDiv.appendChild(_currentToolBlock);
+  scrollResponse();
+}
+
+function fillToolInput(toolUseId, name, input) {
+  const el = document.getElementById('tj-' + toolUseId);
+  if (el) {
+    el.textContent = JSON.stringify(input, null, 2);
+  }
+  // Remove the "Running..." indicator once we have input
+  if (_currentToolBlock && _currentToolBlock.dataset.toolUseId === toolUseId) {
+    const ri = _currentToolBlock.querySelector('.tool-running');
+    if (ri) ri.remove();
+  }
+}
+
+function appendApprovalPending() {
+  if (!_currentAssistantDiv) startAssistantMessage();
+  const div = document.createElement('div');
+  div.className = 'approval-pending';
+  div.id = 'approval-pending-indicator';
+  div.innerHTML = '⚠ Awaiting approval…';
+  _currentAssistantDiv.appendChild(div);
+  scrollResponse();
+}
+
+function appendError(msg) {
+  const body = document.getElementById('response-body');
+  const div  = document.createElement('div');
+  div.className = 'error-msg';
+  div.textContent = '✗ ' + msg;
+  body.appendChild(div);
+  scrollResponse();
+}
+
+function scrollResponse() {
+  const body = document.getElementById('response-body');
+  body.scrollTop = body.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── SSE streaming helper ───────────────────────────────────────────────────────
+async function streamPost(url, body, onEvent, signal) {
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    onEvent({ type: 'error', message: e.message });
+    return;
+  }
+
+  if (!response.ok) {
+    const txt = await response.text();
+    onEvent({ type: 'error', message: `HTTP ${response.status}: ${txt}` });
+    return;
+  }
+
+  const reader  = response.body.getReader();
+  const decoder = new TextDecoder();
+  let   buffer  = '';
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const obj = JSON.parse(line.slice(6));
+            onEvent(obj);
+          } catch {}
+        }
+      }
+    }
+
+    // Process any remaining buffered content
+    if (buffer.startsWith('data: ')) {
+      try { onEvent(JSON.parse(buffer.slice(6))); } catch {}
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') onEvent({ type: 'error', message: e.message });
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+}
+
+// ── Abort / stop ───────────────────────────────────────────────────────────────
+
+let _activeController = null;   // AbortController for the current fetch
+let _activeSessionId  = null;   // session ID of the running invocation
+
+async function stopStream() {
+  if (_activeController) {
+    _activeController.abort();
+    _activeController = null;
+  }
+
+  // Tell the server to stop the boto3 event loop for this session
+  if (_activeSessionId) {
+    fetch('/api/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: _activeSessionId }),
+    }).catch(() => {});
+    _activeSessionId = null;
+  }
+
+  finalizeCurrentSpan();
+
+  // Append a visible "stopped" marker in the response area
+  const body = document.getElementById('response-body');
+  const div  = document.createElement('div');
+  div.style.cssText = 'padding:4px 0 2px; font-size:12px; color:var(--red); font-family:var(--font-mono);';
+  div.textContent = '■ stopped by user';
+  body.appendChild(div);
+  scrollResponse();
+
+  setStreaming(false);
+  _currentAssistantDiv = null;
+  _currentTextSpan     = null;
+  _currentToolBlock    = null;
+}
+
+// ── Send helpers ───────────────────────────────────────────────────────────────
+function setStreaming(val) {
+  state.streaming = val;
+  document.getElementById('send-btn').style.display = val ? 'none' : '';
+  document.getElementById('stop-btn').style.display = val ? 'inline-flex' : 'none';
+
+  if (val) {
+    _lastSseEvents = [];
+  } else {
+    _activeController = null;
+    _activeSessionId  = null;
+    // Always refresh the drawer after a stream ends so server-side data
+    // (system prompt, tools, response preview) appear immediately.
+    if (_contextDrawerOpen) renderContextDrawer();
+  }
+}
+
+function handleStreamEvent(event) {
+  _lastSseEvents.push(event);
+
+  switch (event.type) {
+    case 'token':
+      appendToken(event.text);
+      break;
+    case 'tool_start':
+      appendToolStart(event.name, event.tool_use_id);
+      break;
+    case 'tool_input':
+      fillToolInput(event.tool_use_id, event.name, event.input);
+      break;
+    case 'stop':
+      finalizeCurrentSpan();
+      setStreaming(false);
+      _currentAssistantDiv = null;
+      _currentTextSpan     = null;
+      _currentToolBlock    = null;
+      break;
+    case 'error':
+      finalizeCurrentSpan();
+      appendError(event.message);
+      setStreaming(false);
+      _currentAssistantDiv = null;
+      _currentTextSpan     = null;
+      break;
+  }
+}
+
+function _trackCtx(mode, prompt, sessionId, extra) {
+  _lastSentCtx = {
+    mode,
+    model:      state.selectedModel || 'default',
+    session_id: sessionId,
+    prompt,
+    ...extra,
+    started_at: new Date().toISOString(),
+  };
+  if (_contextDrawerOpen) renderContextDrawer();
+}
+
+async function sendMessage() {
+  if (state.streaming) return;
+
+  const inp    = document.getElementById('prompt-input');
+  const prompt = inp.value.trim();
+  if (!prompt) return;
+
+  inp.value = '';
+  autoResize(inp);
+
+  const sessionId = getSession(state.mode);
+  _trackCtx(state.mode, prompt, sessionId, {});
+  _activeController = new AbortController();
+  _activeSessionId  = sessionId;
+  setStreaming(true);
+  appendUserMessage(prompt);
+  startAssistantMessage();
+
+  const body = {
+    session_id: sessionId,
+    mode: state.mode,
+    prompt,
+  };
+  if (state.selectedModel) body.model = state.selectedModel;
+
+  await streamPost('/api/invoke', body, handleStreamEvent, _activeController.signal);
+
+  if (state.streaming) setStreaming(false);
+}
+
+async function sendAnalyst(datasetIdx) {
+  if (state.streaming) return;
+  newSession('analyst');
+
+  const sessionId = getSession('analyst');
+  const meta   = state.meta;
+  const dsName = meta?.datasets?.[datasetIdx]?.name || `Dataset ${datasetIdx + 1}`;
+  _trackCtx('analyst', `[Dataset: ${dsName}]`, sessionId, { dataset_index: datasetIdx });
+  _activeController = new AbortController();
+  _activeSessionId  = sessionId;
+  setStreaming(true);
+  clearResponse();
+
+  appendUserMessage(`[Dataset: ${dsName}]`);
+  startAssistantMessage();
+
+  const body = { session_id: sessionId, mode: 'analyst', prompt: '', dataset: datasetIdx };
+  if (state.selectedModel) body.model = state.selectedModel;
+  await streamPost('/api/invoke', body, handleStreamEvent, _activeController.signal);
+
+  if (state.streaming) setStreaming(false);
+}
+
+function selectMultiAgentScenario(idx) {
+  state.multiAgentScenario = idx;
+  document.querySelectorAll('#scenario-body .chip:not(.example)').forEach((c, i) => {
+    c.classList.toggle('active', i === idx);
+  });
+  sendScenario('multi-agent', idx);
+}
+
+function selectMemoryScenario(idx) {
+  state.memoryScenario = idx;
+  document.querySelectorAll('#scenario-body .chip:not(.example)').forEach((c, i) => {
+    c.classList.toggle('active', i === idx);
+  });
+  sendScenario('memory', idx);
+}
+
+async function seedMemory() {
+  const btn = document.getElementById('seed-btn');
+  const status = document.getElementById('seed-status');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Seeding…';
+  if (status) { status.textContent = ''; status.className = 'seed-status'; }
+  try {
+    const res = await fetch('/api/seed-memory', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      if (status) { status.textContent = '✗ ' + (data.detail || 'Error'); status.className = 'seed-status err'; }
+    } else {
+      const n = data.seeded ?? 0;
+      if (status) { status.textContent = `✓ ${n} record(s) stored — ready to recall`; status.className = 'seed-status ok'; }
+    }
+  } catch (e) {
+    if (status) { status.textContent = '✗ ' + e.message; status.className = 'seed-status err'; }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Seed memory';
+  }
+}
+
+async function sendScenario(mode, scenarioIdx) {
+  if (state.streaming) return;
+  newSession(mode);
+
+  const sessionId = getSession(mode);
+  const meta     = state.meta;
+  const scenKey  = mode === 'multi-agent' ? 'multiagent_scenarios' : 'memory_scenarios';
+  const scName   = meta?.[scenKey]?.[scenarioIdx]?.name || `Scenario ${scenarioIdx + 1}`;
+  _trackCtx(mode, `[Scenario: ${scName}]`, sessionId, { scenario_index: scenarioIdx });
+  _activeController = new AbortController();
+  _activeSessionId  = sessionId;
+  setStreaming(true);
+  clearResponse();
+
+  appendUserMessage(`[Scenario: ${scName}]`);
+  startAssistantMessage();
+
+  const body = { session_id: sessionId, mode, prompt: '', scenario: scenarioIdx };
+  if (state.selectedModel) body.model = state.selectedModel;
+  await streamPost('/api/invoke', body, handleStreamEvent, _activeController.signal);
+
+  if (state.streaming) setStreaming(false);
+}
+
+// ── Input handling ─────────────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 84) + 'px';
+}
+
+// ── Context drawer ─────────────────────────────────────────────────────────────
+
+let _contextDrawerOpen = false;
+let _lastSseEvents     = [];   // raw SSE events from the most recent streaming call
+let _lastSentCtx       = null; // client-side snapshot set at the START of each invoke
+
+function toggleContextDrawer() {
+  _contextDrawerOpen = !_contextDrawerOpen;
+  document.getElementById('context-drawer').classList.toggle('open', _contextDrawerOpen);
+  document.getElementById('ctx-toggle-btn').classList.toggle('ctx-active', _contextDrawerOpen);
+  if (_contextDrawerOpen) renderContextDrawer();
+}
+
+async function renderContextDrawer() {
+  const body    = document.getElementById('context-drawer-body');
+  const emptyEl = document.getElementById('ctx-empty-msg');
+
+  // Client-side context is set immediately when an invocation starts.
+  // Server context is richer (system prompt, tools, response preview) but
+  // only available after the invocation completes.
+  if (!_lastSentCtx) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  // Fetch server-side context (may be empty / from a previous invocation).
+  let serverCtx = {};
+  try {
+    const res = await fetch('/api/context');
+    serverCtx = await res.json();
+  } catch (_) {}
+
+  // Use server data only when it's from the same session as the last sent ctx.
+  const sameSession = serverCtx.session_id === _lastSentCtx.session_id;
+  const srv = sameSession ? serverCtx : {};
+
+  document.getElementById('ctx-mode-badge').textContent = _lastSentCtx.mode || state.mode || '—';
+
+  const overviewObj = {
+    mode:       _lastSentCtx.mode,
+    model:      _lastSentCtx.model,
+    session_id: _lastSentCtx.session_id,
+    started_at: _lastSentCtx.started_at,
+  };
+  if (_lastSentCtx.dataset_index  !== undefined) overviewObj.dataset_index  = _lastSentCtx.dataset_index;
+  if (_lastSentCtx.scenario_index !== undefined) overviewObj.scenario_index = _lastSentCtx.scenario_index;
+  if (srv.memory_id) overviewObj.memory_id = srv.memory_id;
+  if (srv.timestamp) overviewObj.completed_at = srv.timestamp;
+
+  const sections = [
+    {
+      id:    'ctx-overview',
+      title: 'Overview',
+      color: '#58a6ff',
+      content: overviewObj,
+    },
+    {
+      id:    'ctx-prompt',
+      title: 'Prompt sent',
+      color: '#a371f7',
+      content: srv.prompt || _lastSentCtx.prompt || '—',
+      raw: true,
+    },
+    {
+      id:    'ctx-system-prompt',
+      title: 'System Prompt',
+      color: '#ff9900',
+      content: srv.system_prompt || '(available after first response)',
+      raw: true,
+    },
+    {
+      id:    'ctx-tools',
+      title: 'Tools',
+      color: '#3fb950',
+      content: srv.tools ?? '(available after first response)',
+    },
+    {
+      id:    'ctx-response',
+      title: 'Response preview',
+      color: '#f78166',
+      content: srv.response_preview || (state.streaming ? '(streaming…)' : '(available after response)'),
+      raw: true,
+    },
+    {
+      id:    'ctx-sse-events',
+      title: `SSE Events  (${_lastSseEvents.length})`,
+      color: '#d29922',
+      content: _lastSseEvents,
+    },
+  ];
+
+  // Remember which sections were open so we can restore them after re-render.
+  const wasOpen = new Set();
+  body.querySelectorAll('.ctx-section.open').forEach(el => wasOpen.add(el.id));
+
+  body.innerHTML = '';
+  for (const sec of sections) {
+    const el = document.createElement('div');
+    el.className = 'ctx-section';
+    el.id = sec.id;
+
+    const codeContent = sec.raw
+      ? escHtml(String(sec.content))
+      : syntaxHighlightJson(sec.content);
+
+    el.innerHTML = `
+      <div class="ctx-section-header" onclick="toggleCtxSection('${sec.id}')">
+        <span class="ctx-section-title">
+          <span class="ctx-dot" style="background:${sec.color}"></span>
+          ${sec.title}
+        </span>
+        <span class="ctx-section-chevron">▶</span>
+      </div>
+      <div class="ctx-section-body">
+        <pre class="ctx-code">${codeContent}</pre>
+      </div>`;
+    body.appendChild(el);
+  }
+
+  // On first render auto-open overview + prompt; on re-renders restore previous state.
+  if (wasOpen.size === 0) {
+    document.getElementById('ctx-overview')?.classList.add('open');
+    document.getElementById('ctx-prompt')?.classList.add('open');
+  } else {
+    wasOpen.forEach(id => document.getElementById(id)?.classList.add('open'));
+  }
+}
+
+function toggleCtxSection(id) {
+  document.getElementById(id)?.classList.toggle('open');
+}
+
+function syntaxHighlightJson(obj) {
+  let json;
+  try { json = JSON.stringify(obj, null, 2); } catch (_) { return String(obj); }
+  return json.replace(
+    /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(?:\s*:)?|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    m => {
+      if (/^"/.test(m)) {
+        return /:$/.test(m)
+          ? `<span class="j-key">${escHtml(m)}</span>`
+          : `<span class="j-str">${escHtml(m)}</span>`;
+      }
+      if (/true|false/.test(m)) return `<span class="j-bool">${m}</span>`;
+      if (m === 'null')         return `<span class="j-null">${m}</span>`;
+      return `<span class="j-num">${m}</span>`;
+    }
+  );
+}
+
+// ── Credentials ────────────────────────────────────────────────────────────────
+
+async function loadCredsStatus() {
+  // Show file:// warning immediately — no fetch needed to detect this
+  const fileWarn = document.getElementById('file-origin-warning');
+  if (fileWarn) fileWarn.style.display = window.location.protocol === 'file:' ? 'block' : 'none';
+
+  try {
+    const res  = await fetch('/api/credentials');
+    const data = await res.json();
+    document.getElementById('creds-source').textContent  = data.source || 'environment';
+    document.getElementById('creds-profile').textContent = data.profile || '(default)';
+    const desc = data.profile
+      ? `Profile: ${data.profile.substring(0, 22)}${data.profile.length > 22 ? '…' : ''}`
+      : 'Using environment';
+    document.getElementById('creds-nav-desc').textContent = desc;
+  } catch {}
+}
+
+async function applyCredentials() {
+  const text = document.getElementById('creds-textarea').value.trim();
+  if (!text) return;
+
+  const btn    = document.getElementById('creds-apply-btn');
+  const status = document.getElementById('creds-status');
+  btn.disabled = true;
+  btn.textContent = 'Applying…';
+  status.textContent = '';
+  status.className = 'creds-status-info';
+
+  // Must be served via http — file:// origins cannot reach the API
+  if (window.location.protocol === 'file:') {
+    status.textContent = '✗ Open via http://localhost:8000 in your browser, not as a local file';
+    status.className = 'creds-status-err';
+    btn.disabled = false;
+    btn.textContent = 'Apply credentials';
+    return;
+  }
+
+  let res;
+  try {
+    res = await fetch('/api/credentials', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({credentials_text: text}),
+    });
+  } catch (e) {
+    status.textContent = `✗ Network error — ${e.message}. Is the server running at ${window.location.origin}?`;
+    status.className = 'creds-status-err';
+    btn.disabled = false;
+    btn.textContent = 'Apply credentials';
+    return;
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    status.textContent = `✗ Bad response (HTTP ${res.status}) — ${e.message}`;
+    status.className = 'creds-status-err';
+    btn.disabled = false;
+    btn.textContent = 'Apply credentials';
+    return;
+  }
+
+  if (!res.ok) {
+    status.textContent = '✗ ' + (data.detail || `HTTP ${res.status}`);
+    status.className = 'creds-status-err';
+  } else {
+    status.textContent = `✓ Applied — ${data.profile}  (key: ${data.key_id_prefix}${data.has_session_token ? '  · session token ✓' : ''})`;
+    status.className = 'creds-status-ok';
+    await loadCredsStatus();
+    await refreshStatus();
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Apply credentials';
+}
+
+function clearCredsTextarea() {
+  document.getElementById('creds-textarea').value = '';
+  document.getElementById('creds-status').textContent = '';
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+(async function init() {
+  await Promise.all([refreshStatus(), loadMeta(), loadCredsStatus(), loadModels()]);
+
+  selectMode('chat');
+
+  // Poll status every 30s
+  setInterval(refreshStatus, 30000);
+})();
+</script>
+</body>
+</html>

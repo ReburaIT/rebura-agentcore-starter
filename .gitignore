@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Terraform state — contains account IDs and resource ARNs, don't commit
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+
+# Credentials / secrets
+.env
+*.env
+aws_credentials.txt
+
+# Strands python_repl persistent state
+repl_state/
+
+# Generated PDFs and screenshots
+*.pdf
+*.png
+
+# macOS
+.DS_Store
+
+# Debug output (contains local paths)
+errors/

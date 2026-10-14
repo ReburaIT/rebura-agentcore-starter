@@ -1,0 +1,8 @@
+# Everything needed for the web UI, the CLI and the starter agent.
+fastapi
+uvicorn[standard]
+boto3>=1.43.25
+python-dotenv>=1.0.0
+strands-agents>=1.60.0,<2
+strands-agents-tools>=0.8.9,<1
+bedrock-agentcore>=1.24.0,<2
