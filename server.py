@@ -48,7 +48,12 @@ from pydantic import BaseModel
 
 from strands import Agent, tool
 from strands.models import BedrockModel
-from strands_tools import http_request, python_repl
+from strands_tools import http_request
+
+try:
+    from strands_tools import python_repl
+except ModuleNotFoundError:  # Windows: strands_tools.python_repl needs fcntl/pty
+    from repl_fallback import python_repl
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 

@@ -24,6 +24,8 @@ You need:
 
 Commands are given for **macOS / Linux** and **Windows (PowerShell)** where they differ. Where there's only one block, it works on both.
 
+**Windows note:** `strands_tools.python_repl` needs `fcntl` and `pty`, which only exist on Linux and macOS. On Windows the demo automatically falls back to a simpler `python_repl` in `repl_fallback.py`, which runs each snippet in a fresh Python process. Analyst mode still works, but variables don't carry over between calls. If you'd rather have the full tool, run everything in [WSL](https://learn.microsoft.com/windows/wsl/install) with the macOS / Linux commands.
+
 ---
 
 ## Step by step
@@ -284,6 +286,7 @@ Memory mode in the web UI uses the `agentcore_memory` tool in `server.py`, which
 | `scripts/check_setup.py` | Checks Python, packages, AWS credentials, model access and memory |
 | `scripts/create_memory.py` | Creates an AgentCore Memory store and prints its ID |
 | `terraform/` | Same memory store plus the IAM policy the demo needs, as Terraform |
+| `repl_fallback.py` | Windows-only stand-in for `python_repl` (see Windows note) |
 | `server.py` | Demo web backend: Strands agents, SSE streaming, credential swap |
 | `index.html` | Demo web UI |
 | `demo.py` | Demo CLI |
