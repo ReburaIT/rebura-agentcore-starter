@@ -48,7 +48,7 @@ from pydantic import BaseModel
 
 from strands import Agent, tool
 from strands.models import BedrockModel
-from strands_tools import http_request
+from strands.vended_tools import http_request, web_fetch
 
 try:
     from strands_tools import python_repl
@@ -225,7 +225,7 @@ def _build_agent(mode: str, model_id: str, cb: _DelegatingCallback, session_id: 
     if mode == "researcher":
         return Agent(
             model=model,
-            tools=[http_request],
+            tools=[http_request, web_fetch],
             system_prompt=_RESEARCHER_SYSTEM,
             callback_handler=cb,
         )
@@ -265,9 +265,9 @@ def _make_sub_agent_tools(model_id: str) -> list:
         Use this for any question that requires up-to-date facts, news, or pricing."""
         agent = Agent(
             model=_make_model(model_id),
-            tools=[http_request],
+            tools=[http_request, web_fetch],
             system_prompt=(
-                "You are a web research specialist. Use http_request to fetch live information. "
+                "You are a web research specialist. Use web_fetch to read web pages and http_request for APIs. "
                 "Always cite the URLs you visited. Be concise and factual."
             ),
         )
@@ -403,9 +403,9 @@ _ANALYST_SYSTEM = (
 )
 
 _RESEARCHER_SYSTEM = (
-    "You are a focused research assistant with live web access via http_request.\n\n"
+    "You are a focused research assistant with live web access via web_fetch and http_request.\n\n"
     "For every research question:\n"
-    "1. Make an http_request GET to a relevant URL.\n"
+    "1. Use web_fetch to read a relevant URL (http_request for JSON APIs).\n"
     "2. Read the response, extract the key facts.\n"
     "3. Make at least 2–3 requests to different sources before answering.\n"
     "4. Always cite the exact URLs you visited.\n\n"
@@ -671,7 +671,7 @@ async def invoke(req: InvokeRequest):
         elif mode == "researcher":
             prompt = req.prompt or "Tell me about Amazon Bedrock AgentCore."
             context_meta["system_prompt"] = _RESEARCHER_SYSTEM
-            context_meta["tools"] = ["http_request"]
+            context_meta["tools"] = ["web_fetch", "http_request"]
 
         # ── multi-agent ──
         elif mode == "multi-agent":

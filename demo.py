@@ -24,7 +24,7 @@ except ImportError:
 
 from strands import Agent, tool
 from strands.models import BedrockModel
-from strands_tools import http_request
+from strands.vended_tools import http_request, web_fetch
 
 try:
     from strands_tools import python_repl
@@ -147,8 +147,8 @@ _ANALYST_SYSTEM = (
 )
 
 _RESEARCHER_SYSTEM = (
-    "You are a focused research assistant with live web access via http_request.\n"
-    "For every research question, make at least 2–3 http_request GETs to different sources. "
+    "You are a focused research assistant with live web access via web_fetch and http_request.\n"
+    "For every research question, make at least 2–3 web_fetch or http_request calls to different sources. "
     "Always cite the URLs you visited. Never rely on training data for facts that can change."
 )
 
@@ -222,8 +222,8 @@ def _make_sub_agent_tools(model_id: str) -> list:
         """Research current information from the web using live HTTP requests."""
         agent = Agent(
             model=_make_model(model_id),
-            tools=[http_request],
-            system_prompt="You are a web research specialist. Use http_request to fetch live information. Cite all URLs.",
+            tools=[http_request, web_fetch],
+            system_prompt="You are a web research specialist. Use web_fetch to read web pages and http_request for APIs. Cite all URLs.",
         )
         return str(agent(query))
 
@@ -324,13 +324,13 @@ def run_researcher(model_id: str = DEFAULT_MODEL) -> None:
     print(
         textwrap.dedent(f"""
         {DIM}Model: {model_id}
-        Tools: http_request (live HTTP GET/POST)
+        Tools: web_fetch, http_request (live web access)
         Demonstrates: real-time web research with citation{RESET}
         """)
     )
     agent = Agent(
         model=_make_model(model_id),
-        tools=[http_request],
+        tools=[http_request, web_fetch],
         system_prompt=_RESEARCHER_SYSTEM,
         callback_handler=_printing_callback,
     )

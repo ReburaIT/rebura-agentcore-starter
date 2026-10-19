@@ -1259,7 +1259,7 @@
               <rect x="319" y="26" width="120" height="54" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
               <text x="379" y="46" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="600" fill="#3fb950">Tools</text>
               <text x="379" y="59" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">python_repl</text>
-              <text x="379" y="70" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">http_request</text>
+              <text x="379" y="70" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e">web_fetch / http_request</text>
               <text x="379" y="73" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="9" fill="#8b949e"> </text>
 
               <!-- Conversation history box -->
@@ -1418,13 +1418,13 @@ const SCENARIOS = {
   },
   researcher: {
     title: 'Researcher — Live web research via HTTP',
-    desc: 'Strands Agent with the http_request tool. The agent makes live GET/POST requests to real URLs, extracts facts, and cites its sources. Never relies on training-data memory for things that can change.',
-    features: ['http_request tool', 'Live web access', 'Multi-source citation'],
+    desc: 'Strands Agent with the web_fetch and http_request tools. The agent makes live GET/POST requests to real URLs, extracts facts, and cites its sources. Never relies on training-data memory for things that can change.',
+    features: ['web_fetch + http_request tools', 'Live web access', 'Multi-source citation'],
     inputPlaceholder: 'Ask about current events, pricing, or live data…',
   },
   'multi-agent': {
     title: 'Multi-Agent — Supervisor + specialists',
-    desc: 'A supervisor Strands Agent delegates to two specialist sub-agents defined as @tool functions: research_specialist (http_request) and data_analyst (python_repl). Shows task decomposition and cross-agent collaboration.',
+    desc: 'A supervisor Strands Agent delegates to two specialist sub-agents defined as @tool functions: research_specialist (web_fetch, http_request) and data_analyst (python_repl). Shows task decomposition and cross-agent collaboration.',
     features: ['Supervisor pattern', 'research_specialist sub-agent', 'data_analyst sub-agent'],
     inputPlaceholder: 'Describe a task requiring research and analysis…',
   },

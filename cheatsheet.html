@@ -287,7 +287,8 @@ response = agent(<span class="str">"What's the weather in Dublin?"</span>)</pre>
       <table>
         <tr><th>Tool</th><th>Does</th></tr>
         <tr><td><code>python_repl</code></td><td>Execute Python in-process</td></tr>
-        <tr><td><code>http_request</code></td><td>GET/POST external URLs</td></tr>
+        <tr><td><code>web_fetch</code></td><td>Fetch and read a web page</td></tr>
+        <tr><td><code>http_request</code></td><td>GET/POST external APIs</td></tr>
         <tr><td><code>file_read / file_write</code></td><td>Local filesystem access</td></tr>
         <tr><td><code>calculator</code></td><td>Safe math evaluation</td></tr>
         <tr><td><code>use_aws</code></td><td>Call any AWS service via boto3</td></tr>
@@ -352,7 +353,8 @@ rt.invoke_code_interpreter(…)
       <table>
         <tr><th>Tool</th><th>Does</th></tr>
         <tr><td><code>python_repl</code></td><td>Execute Python locally (not sandboxed)</td></tr>
-        <tr><td><code>http_request</code></td><td>Live GET/POST to external URLs</td></tr>
+        <tr><td><code>web_fetch</code></td><td>Fetch and read a web page</td></tr>
+        <tr><td><code>http_request</code></td><td>Live GET/POST to external APIs</td></tr>
         <tr><td><code>browser</code></td><td>Headless Chromium (AgentCore)</td></tr>
         <tr><td><code>use_aws</code></td><td>Call any AWS service via boto3</td></tr>
         <tr><td><code>retrieve</code></td><td>Bedrock Knowledge Base RAG</td></tr>
