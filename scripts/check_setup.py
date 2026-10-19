@@ -16,7 +16,38 @@ except ImportError:
     pass
 
 REGION = os.environ.get("AGENTCORE_REGION", "eu-central-1")
+<<<<<<< Updated upstream
 MODEL = os.environ.get("CHECK_MODEL_ID") or os.environ.get("MODEL_ID", "eu.amazon.nova-pro-v1:0")
+=======
+
+
+def _default_model_for(region: str) -> str:
+    """Pick a Nova Pro inference profile whose prefix matches the region.
+
+    Bedrock inference profiles are regional: an `eu.` profile only works in EU
+    regions, `us.` in US regions, `au.` in Australia. Guessing the prefix from
+    the region avoids a confusing ValidationException on a correctly configured
+    non-EU setup (for example a us-west-2 workshop sandbox)."""
+    prefix_by_region = {
+        "eu": "eu",   # eu-central-1, eu-west-1, ...
+        "us": "us",   # us-east-1, us-west-2, ...
+        "ap-southeast-2": "au",  # Sydney
+        "ap-southeast-4": "au",  # Melbourne
+    }
+    prefix = prefix_by_region.get(region) or prefix_by_region.get(region.split("-")[0], "us")
+    return f"{prefix}.amazon.nova-pro-v1:0"
+
+
+# Which model to test, in priority order:
+#   1. CHECK_MODEL_ID   — explicit override, if you want to test a specific profile
+#   2. MODEL_ID         — the model the demo and starter agent actually use (from .env)
+#   3. a region-aware Nova Pro default derived from AGENTCORE_REGION
+MODEL = (
+    os.environ.get("CHECK_MODEL_ID")
+    or os.environ.get("MODEL_ID")
+    or _default_model_for(REGION)
+)
+>>>>>>> Stashed changes
 MEMORY_ID = os.environ.get("AGENTCORE_MEMORY_ID", "")
 
 failures = 0
