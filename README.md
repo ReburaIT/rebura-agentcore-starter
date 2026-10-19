@@ -142,7 +142,7 @@ Try the modes in this order:
 |---|---|---|
 | **Chat** | Ask a question, then a follow-up that refers to it | An agent keeps conversation history |
 | **Analyst** | Run one of the bundled datasets | An agent that writes and runs Python (`python_repl`) instead of guessing numbers |
-| **Researcher** | Ask about current AWS pricing | An agent that uses a tool (`http_request`) and cites sources |
+| **Researcher** | Ask how AgentCore Runtime deploys a model | An agent that uses tools (`web_fetch`, `http_request`) and cites sources |
 | **Multi-agent** | Run "Research + Analyse" | A supervisor agent delegating to specialist agents that are exposed as tools |
 | **Memory** | Needs step 7 | Facts persist across sessions in AgentCore Memory |
 

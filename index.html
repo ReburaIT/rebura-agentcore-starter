@@ -1399,7 +1399,9 @@ const state = {
   memoryScenario: 0,
   meta: null,
   availableModels: [],
-  selectedModel: null,   // applies to all modes
+  selectedModel: null,   // only set when the user picks a model; null = use the server default for the mode
+  defaultModel: null,
+  modeDefaults: {},
 };
 
 // ── Scenario metadata ──────────────────────────────────────────────────────────
@@ -1420,7 +1422,7 @@ const SCENARIOS = {
     title: 'Researcher — Live web research via HTTP',
     desc: 'Strands Agent with the web_fetch and http_request tools. The agent makes live GET/POST requests to real URLs, extracts facts, and cites its sources. Never relies on training-data memory for things that can change.',
     features: ['web_fetch + http_request tools', 'Live web access', 'Multi-source citation'],
-    inputPlaceholder: 'Ask about current events, pricing, or live data…',
+    inputPlaceholder: 'Ask about AWS docs, announcements, or live data…',
   },
   'multi-agent': {
     title: 'Multi-Agent — Supervisor + specialists',
@@ -1524,9 +1526,8 @@ async function loadModels() {
     if (!res.ok) return;
     const data = await res.json();
     state.availableModels = data.models || [];
-    if (!state.selectedModel) {
-      state.selectedModel = data.default || null;
-    }
+    state.defaultModel = data.default || null;
+    state.modeDefaults = data.mode_defaults || {};
     renderScenarioPanel(state.mode);
   } catch (e) {
     console.warn('Failed to load models:', e);
@@ -1595,7 +1596,7 @@ function renderScenarioPanel(mode) {
 
   // ── Model selector (shown in every mode) ──
   const models = state.availableModels;
-  const cur    = state.selectedModel;
+  const cur    = state.selectedModel || state.modeDefaults[mode] || state.defaultModel;
   let modelHtml = '';
   if (models.length) {
     const opts = models.map(m =>
@@ -2015,7 +2016,7 @@ function handleStreamEvent(event) {
 function _trackCtx(mode, prompt, sessionId, extra) {
   _lastSentCtx = {
     mode,
-    model:      state.selectedModel || 'default',
+    model:      state.selectedModel || state.modeDefaults[mode] || state.defaultModel || 'default',
     session_id: sessionId,
     prompt,
     ...extra,

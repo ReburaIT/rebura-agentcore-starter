@@ -24,7 +24,11 @@ except ImportError:
 
 from strands import Agent, tool
 from strands.models import BedrockModel
-from strands.vended_tools import http_request, web_fetch
+from strands.vended_tools import http_request
+from strands.vended_tools.web_fetch import make_web_fetch
+
+# markdown mode returns the page text directly, with no nested model call per fetch
+web_fetch = make_web_fetch(mode="markdown")
 
 try:
     from strands_tools import python_repl
@@ -39,6 +43,7 @@ MEMORY_ID = os.environ.get("AGENTCORE_MEMORY_ID", "")
 
 # Inference profile IDs depend on the region (eu., us., au., ...). Override them in .env.
 MODEL_NOVA   = os.environ.get("MODEL_NOVA", "eu.amazon.nova-pro-v1:0")
+MODEL_SONNET = os.environ.get("MODEL_SONNET", "eu.anthropic.claude-sonnet-4-6")
 DEFAULT_MODEL = os.environ.get("MODEL_ID", MODEL_NOVA)
 
 # ── Datasets ───────────────────────────────────────────────────────────────────
@@ -96,9 +101,9 @@ _MULTIAGENT_SCENARIOS = [
     {
         "name": "Research + Analyse",
         "prompt": (
-            "Research the current on-demand pricing for Amazon Bedrock Nova Pro in eu-central-1, "
-            "then calculate the cost of running 1,000 conversations per day, "
-            "each averaging 500 input tokens and 800 output tokens."
+            "Research the maximum context window and maximum output tokens of Amazon Nova Pro from the AWS documentation, "
+            "then calculate how many conversations of 500 input and 800 output tokens fit in one context window, "
+            "and the total tokens used by 1,000 such conversations per day."
         ),
     },
     {
@@ -150,12 +155,14 @@ _ANALYST_SYSTEM = (
 _RESEARCHER_SYSTEM = (
     "You are a focused research assistant with live web access via web_fetch and http_request.\n"
     "For every research question, make at least 2–3 web_fetch or http_request calls to different sources. "
-    "Always cite the URLs you visited. Never rely on training data for facts that can change."
+    "Never guess domains: start from docs.aws.amazon.com/bedrock-agentcore/latest/devguide/, docs.aws.amazon.com/nova/latest/userguide/, aws.amazon.com/new/, strandsagents.com or github.com/strands-agents. "
+    "Always cite the URLs you visited. Never rely on training data for facts that can change. "
+    "Only state facts that appear in the pages you fetched. If the pages do not say, answer 'not found in the sources' instead of filling in from memory."
 )
 
 _MULTIAGENT_SYSTEM = (
     "You are an orchestrator with two specialist sub-agents:\n"
-    "• research_specialist — for current web information, news, pricing, documentation.\n"
+    "• research_specialist — for current web information, news, documentation.\n"
     "• data_analyst — for calculations, statistics, data processing.\n"
     "Break complex tasks down, delegate to the right specialist, and combine their outputs."
 )
@@ -227,6 +234,8 @@ def _make_sub_agent_tools(model_id: str) -> list:
             system_prompt=(
                 "You are a web research specialist. Use web_fetch to read web pages and http_request for APIs. "
                 "Open the actual page for each item you report, not just a listing page. "
+                "Start from real pages, never guess a domain. Good starting points: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/ , https://aws.amazon.com/new/ (announcements), https://docs.aws.amazon.com/nova/latest/userguide/ (Amazon Nova models), https://strandsagents.com/ , https://github.com/strands-agents . " "If a page is empty or fails, try a different real URL; never invent domains. "
+                "Only state facts that appear in the pages you fetched. If the pages do not say, answer 'not found in the sources' instead of filling in from memory. "
                 "For each item return its title, URL, date and 2-3 key sentences from the page. Cite all URLs."
             ),
         )
@@ -346,7 +355,7 @@ def run_researcher(model_id: str = DEFAULT_MODEL) -> None:
 
     examples = [
         "What are the key differences between Amazon Bedrock AgentCore and LangGraph?",
-        "What is the current on-demand pricing for Amazon Bedrock Nova Pro in eu-central-1?",
+        "Which models does Amazon Bedrock AgentCore Runtime support, and how do you deploy one with the AgentCore CLI?",
         "What were the most significant AI agent announcements from AWS in 2025?",
     ]
 
@@ -379,6 +388,9 @@ def run_researcher(model_id: str = DEFAULT_MODEL) -> None:
 
 
 def run_multi_agent(model_id: str = DEFAULT_MODEL) -> None:
+    # Multi-agent orchestration is unreliable on Nova Pro, so default to Sonnet unless another model was chosen.
+    if model_id == MODEL_NOVA:
+        model_id = MODEL_SONNET
     _header("Multi-Agent — Supervisor + Specialists")
     print(
         textwrap.dedent(f"""
