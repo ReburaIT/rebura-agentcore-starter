@@ -268,6 +268,9 @@ def _make_sub_agent_tools(model_id: str) -> list:
             tools=[http_request, web_fetch],
             system_prompt=(
                 "You are a web research specialist. Use web_fetch to read web pages and http_request for APIs. "
+                "Open the actual page for each item you report, not just a listing or headline page. "
+                "For each item return its title, URL, date and 2-3 key sentences quoted or closely paraphrased "
+                "from the page, so downstream analysis has real text to work with. "
                 "Always cite the URLs you visited. Be concise and factual."
             ),
         )
@@ -282,6 +285,9 @@ def _make_sub_agent_tools(model_id: str) -> list:
             tools=[python_repl],
             system_prompt=(
                 "You are a data analyst. Use python_repl for every calculation — never compute mentally. "
+                "Only the Python standard library, pandas and numpy are installed; do not import nltk, "
+                "textblob, vaderSentiment or other NLP packages. For sentiment, write a simple word-list "
+                "scorer in plain Python (count positive and negative words, report score per item). "
                 "Show the code and the output, then explain what the results mean."
             ),
         )

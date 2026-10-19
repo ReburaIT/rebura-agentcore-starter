@@ -223,7 +223,11 @@ def _make_sub_agent_tools(model_id: str) -> list:
         agent = Agent(
             model=_make_model(model_id),
             tools=[http_request, web_fetch],
-            system_prompt="You are a web research specialist. Use web_fetch to read web pages and http_request for APIs. Cite all URLs.",
+            system_prompt=(
+                "You are a web research specialist. Use web_fetch to read web pages and http_request for APIs. "
+                "Open the actual page for each item you report, not just a listing page. "
+                "For each item return its title, URL, date and 2-3 key sentences from the page. Cite all URLs."
+            ),
         )
         return str(agent(query))
 
@@ -233,7 +237,11 @@ def _make_sub_agent_tools(model_id: str) -> list:
         agent = Agent(
             model=_make_model(model_id),
             tools=[python_repl],
-            system_prompt="You are a data analyst. Use python_repl for every calculation. Show code and output.",
+            system_prompt=(
+                "You are a data analyst. Use python_repl for every calculation. "
+                "Only the standard library, pandas and numpy are installed; for sentiment, write a simple "
+                "word-list scorer in plain Python instead of importing NLP packages. Show code and output."
+            ),
         )
         return str(agent(task))
 
