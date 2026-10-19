@@ -20,7 +20,9 @@ You need:
 - **Python 3.10 or newer** (`python3 --version`)
 - **An AWS account with Bedrock model access.** If you're using this in a workshop or hackathon, the organisers may give you a sandbox account, so follow their instructions for credentials, region and permissions. If you're using your own AWS account, **you pay for everything you use** (see [Cost](#cost)).
 - **AWS credentials** for that account: an access key, secret key and session token, or an SSO profile.
-- **Node.js 20 or newer**, only for step 8 (deploying with the AgentCore CLI).
+- **Node.js 20 or newer**, only for step 9 (deploying with the AgentCore CLI).
+
+Commands are given for **macOS / Linux** and **Windows (PowerShell)** where they differ. Where there's only one block, it works on both.
 
 ---
 
@@ -35,37 +37,67 @@ cd rebura-agentcore-starter
 
 ### 2. Create a virtual environment and install dependencies
 
+**macOS / Linux:**
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-You should see `Successfully installed ...` with no errors. Run `source .venv/bin/activate` again whenever you open a new terminal.
+**Windows (PowerShell):**
+```powershell
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+If PowerShell blocks the activate script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once. In `cmd.exe`, use `.venv\Scripts\activate.bat`.
+
+You should see `Successfully installed ...` with no errors. Activate the environment again whenever you open a new terminal.
 
 ### 3. Add your AWS credentials
 
 Pick **one** of these:
 
 **A. Environment variables** (what a workshop sandbox account usually gives you):
+
+macOS / Linux:
 ```bash
 export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
 export AWS_SESSION_TOKEN=...
 ```
+Windows (PowerShell):
+```powershell
+$env:AWS_ACCESS_KEY_ID="..."
+$env:AWS_SECRET_ACCESS_KEY="..."
+$env:AWS_SESSION_TOKEN="..."
+```
+In `cmd.exe`, use `set AWS_ACCESS_KEY_ID=...` (no quotes).
 
 **B. SSO or a named profile:**
+
+macOS / Linux:
 ```bash
 aws sso login --profile <profile>
 export AWS_PROFILE=<profile>
+```
+Windows (PowerShell):
+```powershell
+aws sso login --profile <profile>
+$env:AWS_PROFILE="<profile>"
 ```
 
 > The web UI also has a **Credentials** button in the sidebar. You can paste fresh credentials there when they expire, without restarting.
 
 ### 4. Create your settings file
 
+macOS / Linux:
 ```bash
 cp .env.example .env
+```
+Windows (PowerShell):
+```powershell
+Copy-Item .env.example .env
 ```
 
 Open `.env`. The defaults work for most people. Change `AGENTCORE_REGION` if your workshop organisers tell you to use another region, or to match the region you want to use in your own account.
@@ -114,7 +146,16 @@ python scripts/create_memory.py --write-env
 This creates a memory store, waits for it to become `ACTIVE`, and adds `AGENTCORE_MEMORY_ID=...` to your `.env`. Restart `python server.py`, open Memory mode and:
 
 1. Click **Store preferences**, then start a **New Session** and click **Recall preferences**. The agent remembers across sessions.
-2. Use `POST /api/seed-memory` to pre-load some example facts before a demo.
+2. Use `POST /api/seed-memory` to pre-load some example facts before a demo:
+
+   macOS / Linux:
+   ```bash
+   curl -X POST localhost:8000/api/seed-memory
+   ```
+   Windows (PowerShell):
+   ```powershell
+   Invoke-RestMethod -Method Post http://localhost:8000/api/seed-memory
+   ```
 
 Your role needs permission for `bedrock-agentcore-control:CreateMemory`. In a workshop sandbox, if that's denied, ask the organisers for a memory ID.
 
@@ -152,9 +193,17 @@ python starter/agent.py --serve
 ```
 
 In a second terminal:
+
+macOS / Linux:
 ```bash
 curl -s localhost:8080/invocations -H 'content-type: application/json' \
   -d '{"prompt": "What is the refund policy?", "session_id": "demo-session-0001", "user_id": "me"}'
+```
+Windows (PowerShell). Plain `curl` is an alias for `Invoke-WebRequest` there, so use `Invoke-RestMethod`:
+```powershell
+Invoke-RestMethod -Method Post http://localhost:8080/invocations `
+  -ContentType 'application/json' `
+  -Body '{"prompt": "What is the refund policy?", "session_id": "demo-session-0001", "user_id": "me"}'
 ```
 You get back `{"result": "..."}`.
 
@@ -175,6 +224,7 @@ Then bring your agent over: copy your tools and system prompt from `starter/agen
 
 - **The first `agentcore deploy` takes a few minutes**, because it bootstraps your account with CDK.
 - Your role needs permission to deploy (CloudFormation, IAM and AgentCore). Workshop sandbox accounts are usually set up for this; in your own account, check your permissions first.
+- `npm install -g` may need `sudo` on macOS / Linux (or an npm prefix in your home directory) and an administrator terminal on Windows.
 - If a step fails, the CLI's error message is the best guide; the [AgentCore CLI quickstart](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/agentcore-get-started-cli.html) covers each command.
 
 ---
@@ -187,10 +237,10 @@ Then bring your agent over: copy your tools and system prompt from `starter/agen
 | `AccessDeniedException` when invoking a model | Bedrock model access isn't enabled for that model in your account or region. In a workshop, ask the organisers; in your own account, enable it in the Bedrock console. |
 | `ExpiredTokenException` / `security token ... expired` | Your temporary credentials expired. Paste new ones in the UI's Credentials panel, or export them again and restart. |
 | `Could not connect to the endpoint URL` | `AGENTCORE_REGION` is wrong or the service isn't available there. Check `.env`. |
-| `Address already in use` on port 8000 | Something else is using it. Run `PORT=8010 python server.py`. |
-| Analyst mode says "Application is already running" | The server sets `BYPASS_TOOL_CONSENT` itself now. If you see this in the CLI, run `export BYPASS_TOOL_CONSENT=true`. |
+| `Address already in use` on port 8000 | Something else is using it. Run `PORT=8010 python server.py` (Windows: `$env:PORT=8010; python server.py`). |
+| Analyst mode says "Application is already running" | The server sets `BYPASS_TOOL_CONSENT` itself now. If you see this in the CLI, run `export BYPASS_TOOL_CONSENT=true` (Windows: `$env:BYPASS_TOOL_CONSENT="true"`). |
 | Memory mode says `AGENTCORE_MEMORY_ID is not set` | Do step 7, then restart the server. |
-| `ModuleNotFoundError` | Your virtual environment isn't active. Run `source .venv/bin/activate`, then `pip install -r requirements.txt`. |
+| `ModuleNotFoundError` | Your virtual environment isn't active. Run `source .venv/bin/activate` (Windows: `.venv\Scripts\Activate.ps1`), then `pip install -r requirements.txt`. |
 | `agentcore: command not found` | Run `npm install -g @aws/agentcore` (needs Node.js 20+). |
 
 Run `python scripts/check_setup.py` any time to re-check your setup.
