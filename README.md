@@ -22,6 +22,17 @@ You need:
 - **AWS credentials** for that account: an access key, secret key and session token, or an SSO profile.
 - **Node.js 20 or newer**, only for step 9 (deploying with the AgentCore CLI).
 
+**Workshop sandbox accounts:** the sandbox role may only allow some regions and models. In our tests it denied the default `eu.` profiles in `eu-central-1` (`AccessDeniedException`) and allowed the `us.` profiles in `us-east-1`. If `python scripts/check_setup.py` fails on the Bedrock check, add this to your `.env` (copy it from `.env.example` first):
+
+```
+AGENTCORE_REGION=us-east-1
+MODEL_ID=us.amazon.nova-pro-v1:0
+MODEL_NOVA=us.amazon.nova-pro-v1:0
+MODEL_SONNET=us.anthropic.claude-sonnet-4-6
+```
+
+Then run the check again. If you create an AgentCore Memory store, create it after changing the region (and delete any `AGENTCORE_MEMORY_ID` from another region), and set `aws_region` to match if you use Terraform. If these don't work either, ask the organisers which region and models your account allows.
+
 Commands are given for **macOS / Linux** and **Windows (PowerShell)** where they differ. Where there's only one block, it works on both.
 
 **Windows note:** `strands_tools.python_repl` needs `fcntl` and `pty`, which only exist on Linux and macOS. On Windows the demo automatically falls back to a simpler `python_repl` in `repl_fallback.py`, which runs each snippet in a fresh Python process. Analyst mode still works, but variables don't carry over between calls. If you'd rather have the full tool, run everything in [WSL](https://learn.microsoft.com/windows/wsl/install) with the macOS / Linux commands.
@@ -186,7 +197,7 @@ Open `starter/agent.py` and change these, in order:
 2. **`lookup_policy`**: replace this stub tool with your own. A tool is a Python function with a docstring; the model reads the docstring to decide when to call it. Make it call a real API, database or file.
 3. **Memory**: set `AGENTCORE_MEMORY_ID` in `.env` and the agent gets an AgentCore Memory tool automatically.
 4. **External tools via MCP**: set `MCP_SERVER_URL` (for example your AgentCore Gateway's MCP URL) and, if it needs one, `MCP_BEARER_TOKEN`. The agent loads all of that server's tools.
-5. **Model**: set `MODEL_ID` in `.env`. Use an `eu.` inference profile ID, such as `eu.amazon.nova-pro-v1:0` or `eu.anthropic.claude-sonnet-4-6`.
+5. **Model**: set `MODEL_ID` in `.env`. Use an inference profile ID whose prefix matches your region, such as `eu.amazon.nova-pro-v1:0` or `eu.anthropic.claude-sonnet-4-6` in Europe. `server.py` and `demo.py` also read `MODEL_ID`, and `MODEL_NOVA` / `MODEL_SONNET` to change the models they offer. For another region, set `AGENTCORE_REGION` too (for example `ap-southeast-2` with `au.` profiles).
 
 Test it as a local AgentCore Runtime server, exactly as it'll run when deployed:
 

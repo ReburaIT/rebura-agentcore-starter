@@ -37,8 +37,9 @@ from strands_tools.agent_core_memory import AgentCoreMemoryToolProvider
 REGION    = os.environ.get("AGENTCORE_REGION",    "eu-central-1")
 MEMORY_ID = os.environ.get("AGENTCORE_MEMORY_ID", "")
 
-MODEL_NOVA   = "eu.amazon.nova-pro-v1:0"
-DEFAULT_MODEL = MODEL_NOVA
+# Inference profile IDs depend on the region (eu., us., au., ...). Override them in .env.
+MODEL_NOVA   = os.environ.get("MODEL_NOVA", "eu.amazon.nova-pro-v1:0")
+DEFAULT_MODEL = os.environ.get("MODEL_ID", MODEL_NOVA)
 
 # ── Datasets ───────────────────────────────────────────────────────────────────
 
@@ -505,14 +506,14 @@ def _main() -> None:
     # Model selection
     print(f"{BOLD}Select model:{RESET}")
     model_choices = [
-        (MODEL_NOVA,   "Amazon Nova Pro  (eu cross-region)"),
+        (DEFAULT_MODEL, f"Default model ({DEFAULT_MODEL})"),
         ("c",          "Custom model ID"),
     ]
     for i, (mid, name) in enumerate(model_choices, 1):
         print(f"  {BOLD}{i}{RESET}  {name}")
     mchoice = input(f"\n{BOLD}Model [1]: {RESET}").strip() or "1"
     if mchoice == "1":
-        model_id = MODEL_NOVA
+        model_id = DEFAULT_MODEL
     elif mchoice == "2":
         model_id = input("Custom model ID: ").strip() or DEFAULT_MODEL
     else:

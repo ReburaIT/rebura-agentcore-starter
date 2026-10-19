@@ -59,9 +59,10 @@ except ModuleNotFoundError:  # Windows: strands_tools.python_repl needs fcntl/pt
 
 REGION       = os.environ.get("AGENTCORE_REGION",       "eu-central-1")
 MEMORY_ID    = os.environ.get("AGENTCORE_MEMORY_ID",    "")
-MODEL_NOVA   = "eu.amazon.nova-pro-v1:0"
-MODEL_SONNET = "eu.anthropic.claude-sonnet-4-6"
-DEFAULT_MODEL = MODEL_NOVA
+# Inference profile IDs depend on the region (eu., us., au., ...). Override them in .env.
+MODEL_NOVA   = os.environ.get("MODEL_NOVA",   "eu.amazon.nova-pro-v1:0")
+MODEL_SONNET = os.environ.get("MODEL_SONNET", "eu.anthropic.claude-sonnet-4-6")
+DEFAULT_MODEL = os.environ.get("MODEL_ID", MODEL_NOVA)
 
 # ── AWS clients ────────────────────────────────────────────────────────────────
 
@@ -624,8 +625,8 @@ def list_models():
     except Exception as exc:
         return {
             "models": [
-                {"id": MODEL_NOVA,   "name": "Amazon Nova Pro (eu cross-region)"},
-                {"id": MODEL_SONNET, "name": "Claude Sonnet 4.6 (eu cross-region)"},
+                {"id": MODEL_NOVA,   "name": "Amazon Nova Pro"},
+                {"id": MODEL_SONNET, "name": "Claude Sonnet 4.6"},
             ],
             "default": DEFAULT_MODEL,
             "error": str(exc),

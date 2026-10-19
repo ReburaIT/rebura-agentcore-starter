@@ -16,7 +16,7 @@ except ImportError:
     pass
 
 REGION = os.environ.get("AGENTCORE_REGION", "eu-central-1")
-MODEL = os.environ.get("CHECK_MODEL_ID", "eu.amazon.nova-pro-v1:0")
+MODEL = os.environ.get("CHECK_MODEL_ID") or os.environ.get("MODEL_ID", "eu.amazon.nova-pro-v1:0")
 MEMORY_ID = os.environ.get("AGENTCORE_MEMORY_ID", "")
 
 failures = 0
@@ -88,8 +88,8 @@ try:
 except ClientError as exc:
     code = exc.response["Error"]["Code"]
     hints = {
-        "AccessDeniedException": "Your role cannot invoke this model. Enable Bedrock model access in the console (own account), or ask the workshop organisers.",
-        "ValidationException": "The model ID is not valid in this region. Use an `eu.` inference profile ID, or change AGENTCORE_REGION.",
+        "AccessDeniedException": "Your role cannot invoke this model in this region. Try another model or region (set MODEL_ID / AGENTCORE_REGION in .env), enable model access in the console (own account), or ask the workshop organisers.",
+        "ValidationException": "The model ID is not valid in this region. Use an inference profile whose prefix matches your region (eu., us., au., ...), or change AGENTCORE_REGION.",
         "ResourceNotFoundException": "Model not found in this region. Check AGENTCORE_REGION.",
         "ThrottlingException": "Throttled. Wait a moment and re-run.",
     }
